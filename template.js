@@ -16,6 +16,7 @@ const traceId = isLoggingEnabled ? getRequestHeader('trace-id') : undefined;
 let publishUrl = 'https://pubsub.googleapis.com/v1/projects/'+enc(data.project)+'/topics/'+enc(data.topic)+':publish';
 let method = 'POST';
 let input = data.addEventData ? getAllEventData() : {};
+let attributes = {};
 
 if (data.addTimestamp) input[data.timestampFieldName] = getTimestampMillis();
 if (data.customDataList) {
@@ -41,7 +42,32 @@ if (data.customDataList) {
     });
 }
 
-input = {'messages': [{'data': toBase64(JSON.stringify(input))}]};
+if (data.attributesDataList) {
+    data.attributesDataList.forEach((d) => {
+        if (data.skipNilValues) {
+            const dType = getType(d.value);
+            if (dType === 'undefined' || dType === 'null') return;
+        } else {
+            attributes[d.name] = d.value;
+        }
+    });
+}
+
+
+// Only send `data` and `attributes` keys if their inputs are not empty objects
+let message = {};
+
+if (input && JSON.stringify(input) !== '{}') {
+    message.data = toBase64(JSON.stringify(input));
+}
+
+if (attributes && JSON.stringify(attributes) !== '{}') {
+    message.attributes = attributes;
+}
+
+input = { messages: [message] };
+
+
 
 if (isLoggingEnabled) {
     logToConsole(

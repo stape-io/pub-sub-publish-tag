@@ -62,7 +62,7 @@ ___TEMPLATE_PARAMETERS___
     "name": "skipNilValues",
     "checkboxText": "Skip null or undefined values",
     "simpleValueType": true,
-    "help": "This option allows skipping items from customDataList with undefined or null values."
+    "help": "This option allows skipping items from customDataList and attributesDataList with undefined or null values."
   },
   {
     "type": "TEXT",
@@ -124,6 +124,40 @@ ___TEMPLATE_PARAMETERS___
     ]
   },
   {
+    "displayName": "Attributes",
+    "name": "attributesDataListGroup",
+    "groupStyle": "ZIPPY_OPEN",
+    "type": "GROUP",
+    "subParams": [
+      {
+        "name": "attributesDataList",
+        "simpleTableColumns": [
+          {
+            "valueValidators": [
+              {
+                "type": "NON_EMPTY"
+              }
+            ],
+            "defaultValue": "",
+            "displayName": "Field Name",
+            "name": "name",
+            "isUnique": true,
+            "type": "TEXT"
+          },
+          {
+            "defaultValue": "",
+            "displayName": "Field Value",
+            "name": "value",
+            "type": "TEXT"
+          }
+        ],
+        "type": "SIMPLE_TABLE",
+        "newRowButtonText": "Add property"
+      }
+    ],
+    "help": "Optional. Attributes for this message. This can be used to filter messages on the subscription."
+  },
+  {
     "displayName": "Logs Settings",
     "name": "logsGroup",
     "groupStyle": "ZIPPY_CLOSED",
@@ -174,6 +208,7 @@ const traceId = isLoggingEnabled ? getRequestHeader('trace-id') : undefined;
 let publishUrl = 'https://pubsub.googleapis.com/v1/projects/'+enc(data.project)+'/topics/'+enc(data.topic)+':publish';
 let method = 'POST';
 let input = data.addEventData ? getAllEventData() : {};
+let attributes = {};
 
 if (data.addTimestamp) input[data.timestampFieldName] = getTimestampMillis();
 if (data.customDataList) {
@@ -199,7 +234,32 @@ if (data.customDataList) {
     });
 }
 
-input = {'messages': [{'data': toBase64(JSON.stringify(input))}]};
+if (data.attributesDataList) {
+    data.attributesDataList.forEach((d) => {
+        if (data.skipNilValues) {
+            const dType = getType(d.value);
+            if (dType === 'undefined' || dType === 'null') return;
+        } else {
+            attributes[d.name] = d.value;
+        }
+    });
+}
+
+
+// Only send `data` and `attributes` keys if their inputs are not empty objects
+let message = {};
+
+if (input && JSON.stringify(input) !== '{}') {
+    message.data = toBase64(JSON.stringify(input));
+}
+
+if (attributes && JSON.stringify(attributes) !== '{}') {
+    message.attributes = attributes;
+}
+
+input = { messages: [message] };
+
+
 
 if (isLoggingEnabled) {
     logToConsole(
