@@ -13,3 +13,6 @@ If you're tracking events such as *purchases* or *sign-ups*, you might want to s
 ## Open Source
 
 The **Pub/Sub Publish Tag** for GTM Server Side is developed and maintained by [Stape Team](https://stape.io/) under the Apache 2.0 license.
+
+### GTM Gallery Status
+🟢 [Listed](https://tagmanager.google.com/gallery/#/owners/stape-io/templates/pub-sub-publish-tag)
